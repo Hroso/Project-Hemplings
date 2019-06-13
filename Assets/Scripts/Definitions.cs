@@ -6,7 +6,7 @@ namespace GM
 		//rozne stavy/abilities, ktore budeme aplikovat na jednotky (default=walk)
 	public enum State
 	{
-		walk, stop, umbrella, digDown, digForward, climb, explode, dead
+		walk, stop, umbrella, digDown, digForward, explode, dead, build
 	};
 	public class Node
     {

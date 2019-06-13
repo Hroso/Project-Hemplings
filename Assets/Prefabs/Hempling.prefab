@@ -130,12 +130,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 893ddd83e3fe68449b28150033cf5c67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameManager: {fileID: 0}
-  rend: {fileID: 212315793135092876}
-  animator: {fileID: 95526801633726904}
   move: 1
   onGround: 0
   curState: 0
+  isUmbrella: 0
+  isDiggingForward: 0
+  digForwardFrames: 35
+  digDownFrames: 35
+  airDeathFrames: 80
+  buildAmount: 25
+  gameManager: {fileID: 0}
+  rend: {fileID: 212315793135092876}
+  animator: {fileID: 95526801633726904}
 --- !u!212 &212315793135092876
 SpriteRenderer:
   m_ObjectHideFlags: 1

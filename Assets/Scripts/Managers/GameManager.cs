@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 namespace GM 
 {
 
@@ -16,7 +17,7 @@ namespace GM
         int maxHeight;
         Node[,] table;
 
-        Node currNode;
+        Node curNode;
         Node prevNode;
         Vector3 mouse;
 
@@ -29,6 +30,20 @@ namespace GM
         public bool overUIElement;
         UnitManager unitManager;
         InterfaceManager interfaceManager;
+        List<Node> clearNodes = new List<Node>(); 
+
+        bool applyTexture;
+        
+        public int stopAbilityUsesLeft = 5;
+        public int umbrellaAbilityUsesLeft = 5;
+        public int digDownAbilityUsesLeft = 5;
+        public int digForwardAbilityUsesLeft = 5;
+        public int explodeAbilityUsesLeft = 5;
+        public Text stopText;
+        public Text umbrellaText;
+        public Text digDownText;
+        public Text digForwardText;
+        public Text explodeText;
         private void Awake()
         {
             singleton = this;
@@ -36,11 +51,18 @@ namespace GM
 
         private void Start()
         {
+            //inicializacia mapy a UIcka
             CreateMap();
             unitManager = UnitManager.singleton;
             interfaceManager = InterfaceManager.singleton;
             spawnNode = GetNodeFromWorldPosition(spawnTransform.position);
             spawnPos = GetWorldPositionFromNode(spawnNode);
+            //inicializacia textu v buttonoch
+            stopText.text = stopAbilityUsesLeft.ToString();
+            umbrellaText.text = umbrellaAbilityUsesLeft.ToString();
+            digDownText.text = digDownAbilityUsesLeft.ToString();
+            digForwardText.text = digForwardAbilityUsesLeft.ToString();
+            explodeText.text = explodeAbilityUsesLeft.ToString();
         }
         //vytvorenie mapy po pixeloch
         void CreateMap()
@@ -67,7 +89,7 @@ namespace GM
             }
             textureInstance.Apply();
             Rect renderer = new Rect(0, 0, maxWidth, maxHeight);
-            levelRenderer.sprite = Sprite.Create(textureInstance, renderer, Vector2.zero);
+            levelRenderer.sprite = Sprite.Create(textureInstance, renderer, Vector2.zero, 100, 0, SpriteMeshType.FullRect);
 
         }   
         //ziskame poziciu mysky (na neskorsiu pracu s nou)
@@ -75,7 +97,7 @@ namespace GM
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             mouse = ray.GetPoint(5);
-            currNode = GetNodeFromWorldPosition(mouse);
+            curNode = GetNodeFromWorldPosition(mouse);
         }
         //nasledovne funkcie su na pracu s mapou, vieme si z Nodu vytiahnut X,Y suradnice a naopak
         public Node GetNodeFromXY(int x, int y)
@@ -103,33 +125,53 @@ namespace GM
         {
             if (n == null)
                 return -Vector3.one;
-
             Vector3 tmp = Vector3.zero;
             tmp.x = n.x * posOffset;
             tmp.y = n.y * posOffset;
             return tmp;
 
         }
+        //vymaze dane pixely z mapy, vyuzite napriklad pri kopani
+        public void ClearNodes() 
+        {
+            if (clearNodes.Count == 0)
+                return;
+            Color tmp = Color.white;
+            tmp.a = 0;
+            for (int i = 0; i < clearNodes.Count; i++) 
+            {
+                clearNodes[i].isEmpty = true;
+                textureInstance.SetPixel(clearNodes[i].x, clearNodes[i].y, tmp);
+            }
+            clearNodes.Clear();
+            applyTexture = true;
+        }
+        public void AddNodesToBeCleared(List<Node> toClear)
+        {
+            clearNodes.AddRange(toClear);
+        }
+    
+
         //funkcia "guma" (na mazanie mapy v runtime)
         void HandleInput()
         {
-            if (currNode == null)
+            if (curNode == null)
                 return;
             if (Input.GetMouseButton(0))
             {
-                if (currNode != prevNode)
+                if (curNode != prevNode)
                 {
-                    prevNode = currNode;
+                    prevNode = curNode;
                     Color asdf = Color.white;
                     asdf.a = 0;
-                    Vector3 center = GetWorldPositionFromNode(currNode);
+                    Vector3 center = GetWorldPositionFromNode(curNode);
                     float radius = editRadius * posOffset;
                     for (int x = -6; x < 6; x++)
                     {
                         for (int y = -6; y < 6; y++)
                         {
-                            int newx = x + currNode.x;
-                            int newy = y + currNode.y;
+                            int newx = x + curNode.x;
+                            int newy = y + curNode.y;
 
                             float d = Vector3.Distance(center, GetWorldPositionFromNode(newx, newy));
                             if (d > radius) 
@@ -138,11 +180,11 @@ namespace GM
                             Node checkNode = GetNodeFromXY(newx, newy);
                             if (checkNode == null)
                                 continue;
-                            checkNode.isEmpty = true;
+                            //checkNode.isEmpty = true;
                             textureInstance.SetPixel(newx, newy, asdf);
                         }
                     }
-                    textureInstance .Apply();
+                    applyTexture = true;
                 }
             }
         }
@@ -157,6 +199,14 @@ namespace GM
                     return;
                 if (curUnit.curState == State.walk)
                     curUnit.ChangeState(interfaceManager.tState);
+                if (curUnit.curState == State.stop)
+                {
+                    if (interfaceManager.tState == State.explode)
+                    {
+                        curUnit.ChangeState(State.walk);
+                        curUnit.ChangeState(State.explode);
+                    }
+                }
             }
         }
         void CheckForUnit()
@@ -178,6 +228,12 @@ namespace GM
             CheckForUnit();
             interfaceManager.Tick();
             HandleUnit();
+            ClearNodes();    
+            if (applyTexture)
+            {
+                textureInstance.Apply();
+                applyTexture = false;
+            }
             //HandleInput();
         }
     }
